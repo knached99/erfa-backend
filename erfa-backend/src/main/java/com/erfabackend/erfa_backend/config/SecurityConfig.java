@@ -1,23 +1,25 @@
 package com.erfabackend.erfa_backend.config;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import com.erfabackend.erfa_backend.util.JwtService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import java.util.List;
+
 import com.erfabackend.erfa_backend.service.AppUserDetailsService;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import com.erfabackend.erfa_backend.util.JwtService;
 
 @Configuration
 public class SecurityConfig {
@@ -27,8 +29,6 @@ public class SecurityConfig {
     private AppUserDetailsService appUserDetailsService;
     @Value("${security.permit-all:false}")
     private boolean permitAll;
-    @Value("${app.cors.allowed-origins:http://localhost:3000}")
-    private String allowedOrigins;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         if (permitAll) {
@@ -65,10 +65,20 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        
+        // More flexible origin patterns for development
+        configuration.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",    // React dev server (usually 3000, 3001, 5173, etc.)
+            "http://127.0.0.1:*",   // Alternative localhost
+            "https://localhost:*",  // HTTPS localhost
+            "https://127.0.0.1:*"   // HTTPS alternative
+        ));
+        
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache preflight for 1 hour
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
